@@ -225,9 +225,9 @@ const App = () => {
         });
 
         setIsAuthenticated(true);
-    } catch (err) {
+    } catch (err: any) {
         console.error("Login error", err);
-        setLoginError("An unexpected error occurred.");
+        setLoginError(err?.message || "An unexpected error occurred.");
     } finally {
         setIsCheckingAuth(false);
         setSyncStatus("");
@@ -391,10 +391,19 @@ const App = () => {
 
     } catch (e: any) {
       console.error(e);
-      if (e.message && (e.message.includes("row-level security") || e.code === "42501" || e.code === "PGRST204")) {
-         handleRlsError(e.code === "PGRST204" ? "⚠️ Database missing columns. Run SQL below." : undefined);
+      // Defensive string check to prevent [object Object] rendering
+      const errMsg = e?.message || "Unknown error";
+      const errCode = e?.code || "";
+      
+      if (
+          errMsg.includes("row-level security") || 
+          errMsg.includes("column") || // Catch "Could not find the ... column" error
+          errCode === "42501" || 
+          errCode === "PGRST204"
+      ) {
+         handleRlsError("⚠️ Database schema update required. Run SQL below.");
       } else {
-         setStatusMsg("Error saving profile. Check console.");
+         setStatusMsg(`Error: ${typeof errMsg === 'string' ? errMsg : 'Check console for details'}`);
       }
     } finally {
       setIsSavingProfile(false);
@@ -454,12 +463,16 @@ const App = () => {
         successCount++;
       } catch (error: any) {
         console.error(`Error uploading file ${i + 1}:`, error);
-        if (error.message && (error.message.includes("row-level security") || error.code === "42501")) {
+        
+        const errMsg = error?.message || "";
+        const errCode = error?.code || "";
+
+        if (errMsg.includes("row-level security") || errCode === "42501") {
             rlsErrorOccurred = true;
             handleRlsError();
-        } else if (error.code === "PGRST204") { 
+        } else if (errCode === "PGRST204" || errMsg.includes("column")) { 
              rlsErrorOccurred = true;
-             handleRlsError("⚠️ Database missing relation. Run SQL below.");
+             handleRlsError("⚠️ Database schema update required. Run SQL below.");
         }
       }
     }
@@ -702,8 +715,9 @@ const App = () => {
       left: 0,
       width: "100%",
       height: "100%",
-      objectFit: "cover" as const,
-      opacity: 0.5,
+      objectFit: "contain" as const,
+      opacity: 0.4,
+      background: "#000",
       animation: "zoomPan 20s infinite alternate",
     },
     messageOverlay: {
@@ -933,9 +947,11 @@ end $$;`;
              }
              .blast-img {
                 position: absolute;
-                width: 250px;
-                height: 250px;
-                object-fit: cover;
+                max-width: 300px;
+                max-height: 300px;
+                width: auto;
+                height: auto;
+                object-fit: contain;
                 border: 4px solid white;
                 border-radius: 12px;
                 box-shadow: 0 10px 40px rgba(0,0,0,0.6);
@@ -966,10 +982,10 @@ end $$;`;
                 animation: cursor 0.75s step-end infinite;
              }
              @media (max-width: 600px) {
-               .animated-title { font-size: 3rem !important; }
-               .blast-img { width: 160px; height: 160px; }
+               .animated-title { font-size: 2.5rem !important; }
+               .blast-img { max-width: 200px; max-height: 200px; }
                .firework { width: 100px; height: 100px; }
-               .love-letter { font-size: 1.1rem !important; }
+               .love-letter { font-size: 1rem !important; }
              }
           `}</style>
           {currentDisplayImage && (
@@ -994,7 +1010,7 @@ end $$;`;
           ))}
           <div style={styles.messageOverlay}>
             <h1 className="animated-title">{customMessage}</h1>
-            <div style={styles.loveLetter}>
+            <div style={styles.loveLetter} className="love-letter">
                 {typedText}<span className="typewriter-cursor">&nbsp;</span>
             </div>
             <button 
@@ -1017,14 +1033,14 @@ end $$;`;
       {/* --- RENDER LOGIC --- */}
       
       {isCheckingAuth ? (
-          <div style={{...styles.glassCard, textAlign: 'center'}}>
+          <div style={{...styles.glassCard, textAlign: 'center'}} className="glass-card">
               <h2 style={{color: '#ffd700'}}>Loading...</h2>
               <p>{syncStatus}</p>
           </div>
       ) : !isAuthenticated ? (
           /* --- LOGIN SCREEN --- */
-          <div style={styles.loginCard}>
-              <h1 style={{...styles.heading, fontSize: '2.5rem', marginBottom: '2rem'}}>Welcome</h1>
+          <div style={styles.loginCard} className="login-card">
+              <h1 style={{...styles.heading, fontSize: '2.5rem', marginBottom: '2rem'}} className="main-heading">Welcome</h1>
               <p style={{marginBottom: '20px', opacity: 0.9}}>Enter your mobile number to see your surprise.</p>
               
               <input 
@@ -1070,31 +1086,31 @@ end $$;`;
             )}
 
             {/* Main Card */}
-            <div style={styles.glassCard}>
+            <div style={styles.glassCard} className="glass-card">
                 {userProfilePic && (
-                <img src={userProfilePic} alt={userName} style={styles.avatar} />
+                <img src={userProfilePic} alt={userName} style={styles.avatar} className="avatar" />
                 )}
-                <h1 style={styles.heading}>New Year Countdown</h1>
+                <h1 style={styles.heading} className="main-heading">New Year Countdown</h1>
                 <p style={{ opacity: 0.8, fontStyle: "italic", marginBottom: "1rem" }}>
                 {userName ? `Counting down for ${userName}...` : "Counting down the moments..."}
                 </p>
                 
-                <div style={styles.timerGrid}>
-                <div style={styles.timeBox}>
-                    <span style={styles.timeNumber}>{timeLeft.days}</span>
-                    <span style={styles.timeLabel}>Days</span>
+                <div style={styles.timerGrid} className="timer-grid">
+                <div style={styles.timeBox} className="time-box">
+                    <span style={styles.timeNumber} className="time-number">{timeLeft.days}</span>
+                    <span style={styles.timeLabel} className="time-label">Days</span>
                 </div>
-                <div style={styles.timeBox}>
-                    <span style={styles.timeNumber}>{timeLeft.hours}</span>
-                    <span style={styles.timeLabel}>Hours</span>
+                <div style={styles.timeBox} className="time-box">
+                    <span style={styles.timeNumber} className="time-number">{timeLeft.hours}</span>
+                    <span style={styles.timeLabel} className="time-label">Hours</span>
                 </div>
-                <div style={styles.timeBox}>
-                    <span style={styles.timeNumber}>{timeLeft.minutes}</span>
-                    <span style={styles.timeLabel}>Mins</span>
+                <div style={styles.timeBox} className="time-box">
+                    <span style={styles.timeNumber} className="time-number">{timeLeft.minutes}</span>
+                    <span style={styles.timeLabel} className="time-label">Mins</span>
                 </div>
-                <div style={styles.timeBox}>
-                    <span style={styles.timeNumber}>{timeLeft.seconds}</span>
-                    <span style={styles.timeLabel}>Secs</span>
+                <div style={styles.timeBox} className="time-box">
+                    <span style={styles.timeNumber} className="time-number">{timeLeft.seconds}</span>
+                    <span style={styles.timeLabel} className="time-label">Secs</span>
                 </div>
                 </div>
 
@@ -1116,7 +1132,7 @@ end $$;`;
             </div>
 
             {/* Settings Button */}
-            <button style={styles.settingsBtn} onClick={handleSettingsClick}>
+            <button style={styles.settingsBtn} onClick={handleSettingsClick} className="settings-btn">
                 <i className="fas fa-cog"></i>
             </button>
           </>
@@ -1291,11 +1307,45 @@ end $$;`;
 
       {/* Mobile Responsive adjustments */}
       <style>{`
+        * { box-sizing: border-box; }
         @media (max-width: 600px) {
-          .glass-card { padding: 1.5rem !important; width: 95% !important; }
-          h1 { font-size: 2.2rem !important; }
-          .timer-grid { gap: 0.5rem !important; }
-          .time-number { font-size: 1.8rem !important; }
+          .glass-card {
+             padding: 1.5rem 1rem !important;
+             width: 90% !important;
+             min-width: unset !important;
+          }
+          .login-card {
+             width: 90% !important;
+             padding: 2rem 1.5rem !important;
+          }
+          .main-heading {
+             font-size: 2rem !important;
+             margin-bottom: 0.5rem !important;
+          }
+          .timer-grid {
+             gap: 0.5rem !important;
+             margin-top: 1.5rem !important;
+          }
+          .time-box {
+             padding: 0.8rem 0.2rem !important;
+          }
+          .time-number {
+             font-size: 1.5rem !important;
+          }
+          .time-label {
+             font-size: 0.6rem !important;
+          }
+          .avatar {
+             width: 60px !important;
+             height: 60px !important;
+             margin-bottom: 0.5rem !important;
+          }
+          .settings-btn {
+             bottom: 15px !important;
+             right: 15px !important;
+             padding: 8px !important;
+             font-size: 1rem !important;
+          }
         }
       `}</style>
     </div>
