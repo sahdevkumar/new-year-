@@ -90,7 +90,7 @@ const App = () => {
   const [syncStatus, setSyncStatus] = useState("");
 
   // --- App State ---
-  const displayYear = new Date().getFullYear() + 1;
+  const displayYear = 2026;
   const [isSurpriseActive, setIsSurpriseActive] = useState(false);
   
   // Data State
