@@ -14,14 +14,6 @@ const supabase = isSupabaseConfigured
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
   : null;
 
-// --- Types ---
-interface TimeLeft {
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-}
-
 // --- Default Images ---
 const DEFAULT_IMAGES = [
   "https://images.unsplash.com/photo-1516053308828-5690b21a329d?q=80&w=1000&auto=format&fit=crop",
@@ -98,14 +90,7 @@ const App = () => {
   const [syncStatus, setSyncStatus] = useState("");
 
   // --- App State ---
-  const [targetDate, setTargetDate] = useState<Date>(() => {
-    const now = new Date();
-    const nextYear = now.getFullYear() + 1;
-    return new Date(`January 1, ${nextYear} 00:00:00`);
-  });
-  const displayYear = targetDate.getFullYear();
-
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const displayYear = new Date().getFullYear() + 1;
   const [isSurpriseActive, setIsSurpriseActive] = useState(false);
   
   // Data State
@@ -243,33 +228,7 @@ const App = () => {
       fetchProfileByMobile(loginMobileInput.trim());
   };
 
-  // --- Logic: Countdown & Slideshow ---
-
-  const calculateTimeLeft = () => {
-    const difference = +targetDate - +new Date();
-    if (difference > 0) {
-      return {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60),
-      };
-    } else {
-      return null; // Time is up!
-    }
-  };
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const remaining = calculateTimeLeft();
-      if (remaining) {
-        setTimeLeft(remaining);
-      } else {
-        if (isAuthenticated && !isSurpriseActive) setIsSurpriseActive(true);
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [targetDate, isSurpriseActive, isAuthenticated]);
+  // --- Logic: Slideshow ---
 
   useEffect(() => {
     if (isSurpriseActive) {
@@ -1090,45 +1049,42 @@ end $$;`;
                 {userProfilePic && (
                 <img src={userProfilePic} alt={userName} style={styles.avatar} className="avatar" />
                 )}
-                <h1 style={styles.heading} className="main-heading">New Year Countdown</h1>
-                <p style={{ opacity: 0.8, fontStyle: "italic", marginBottom: "1rem" }}>
-                {userName ? `Counting down for ${userName}...` : "Counting down the moments..."}
+                <h1 style={styles.heading} className="main-heading">A Special Surprise</h1>
+                <p style={{ opacity: 0.8, fontStyle: "italic", marginBottom: "2rem" }}>
+                {userName ? `I have something special for you, ${userName}...` : "I have something special for you..."}
                 </p>
                 
-                <div style={styles.timerGrid} className="timer-grid">
-                <div style={styles.timeBox} className="time-box">
-                    <span style={styles.timeNumber} className="time-number">{timeLeft.days}</span>
-                    <span style={styles.timeLabel} className="time-label">Days</span>
-                </div>
-                <div style={styles.timeBox} className="time-box">
-                    <span style={styles.timeNumber} className="time-number">{timeLeft.hours}</span>
-                    <span style={styles.timeLabel} className="time-label">Hours</span>
-                </div>
-                <div style={styles.timeBox} className="time-box">
-                    <span style={styles.timeNumber} className="time-number">{timeLeft.minutes}</span>
-                    <span style={styles.timeLabel} className="time-label">Mins</span>
-                </div>
-                <div style={styles.timeBox} className="time-box">
-                    <span style={styles.timeNumber} className="time-number">{timeLeft.seconds}</span>
-                    <span style={styles.timeLabel} className="time-label">Secs</span>
-                </div>
-                </div>
-
                 <button 
-                    onClick={logout} 
-                    style={{
-                        marginTop: '20px', 
-                        background: 'transparent', 
-                        border: '1px solid rgba(255,255,255,0.3)', 
-                        padding: '5px 10px', 
-                        borderRadius: '4px',
-                        color: 'rgba(255,255,255,0.5)',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer'
-                    }}
+                  onClick={() => setIsSurpriseActive(true)}
+                  style={{...styles.btn, fontSize: '1.2rem', padding: '15px 30px', animation: 'pulse 2s infinite'}}
                 >
-                    Logout
+                  Tap to Reveal ❤️
                 </button>
+
+                <style>{`
+                  @keyframes pulse {
+                    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 0, 87, 0.7); }
+                    70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(245, 0, 87, 0); }
+                    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 0, 87, 0); }
+                  }
+                `}</style>
+
+                <div style={{marginTop: '20px'}}>
+                  <button 
+                      onClick={logout} 
+                      style={{
+                          background: 'transparent', 
+                          border: '1px solid rgba(255,255,255,0.3)', 
+                          padding: '5px 10px', 
+                          borderRadius: '4px',
+                          color: 'rgba(255,255,255,0.5)',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                      }}
+                  >
+                      Logout
+                  </button>
+                </div>
             </div>
 
             {/* Settings Button */}
